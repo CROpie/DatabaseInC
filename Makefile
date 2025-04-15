@@ -1,11 +1,11 @@
-#Comiler
+# Comiler
 CC = gcc
 
 # Compiler flags
 CFLAGS = -Iinclude -g
 
 # Source files
-SRCS = src/main.c
+SRCS = src/main.c src/repl.c
 
 # Object files
 OBJS = $(SRCS:.c=.o)
@@ -36,4 +36,4 @@ debug: $(TARGET)
 .PHONY: test
 
 test:
-	rspec ./test/Gemfile
+	rspec ./test/repl_spec.rb
