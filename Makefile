@@ -5,7 +5,7 @@ CC = gcc
 CFLAGS = -Iinclude -g
 
 # Source files
-SRCS = src/main.c src/repl.c
+SRCS = src/main.c src/repl.c src/database.c
 
 # Object files
 OBJS = $(SRCS:.c=.o)
@@ -36,4 +36,4 @@ debug: $(TARGET)
 .PHONY: test
 
 test:
-	rspec ./test/repl_spec.rb
+	rspec ./test/repl_spec.rb ./test/database_spec.rb

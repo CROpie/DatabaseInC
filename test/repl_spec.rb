@@ -15,29 +15,6 @@ RSpec.describe 'database' do
       end
       raw_output.split("\n")
     end
-  
-    # Happy path tests
-    it 'goes down the insert path' do
-      result = run_script([
-        "insert Yo, Peanut!",
-        "exit"
-      ])
-      expect(result).to match_array([
-        "db > running insert",
-        "db > goodbyte",
-      ])
-    end
-
-    it 'goes down the select path' do
-      result = run_script([
-        "select *",
-        "exit"
-      ])
-      expect(result).to match_array([
-        "db > running select",
-        "db > goodbyte",
-      ])
-    end
 
     # Unhappy path tests
     it 'handles random input' do
@@ -46,8 +23,8 @@ RSpec.describe 'database' do
         "exit"
       ])
       expect(result).to match_array([
-        "db > unrecognized command",
-        "db > goodbyte"
+        "unrecognized command",
+        "goodbyte"
       ])
     end
 
@@ -57,7 +34,7 @@ RSpec.describe 'database' do
       ])
       expect(result).to contain_exactly(
         "Failed to get input",
-        "db > Input was too long and got cut off.",
+        "Input was too long and got cut off.",
       )
     end
 
@@ -67,8 +44,8 @@ RSpec.describe 'database' do
         "exit"
       ])
       expect(result).to match_array([
-        "db > unrecognized command",
-        "db > goodbyte",
+        "unrecognized command",
+        "goodbyte",
       ])
     end
 end

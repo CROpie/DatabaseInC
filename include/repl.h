@@ -3,7 +3,7 @@
 
 #include "database.h"
 
-#define INPUT_LENGTH 25
+#define INPUT_LENGTH (MESSAGE_LENGTH - 7)
 
 char* getInput(); 
 char* truncateInput(int N, char* input);
