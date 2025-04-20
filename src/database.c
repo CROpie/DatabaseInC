@@ -19,8 +19,26 @@ Table* db_open(const char* filename) {
 
   Table* table = (Table*) malloc(sizeof(Table));
   memset(table, 0, sizeof(Table));
+  
+  fread(&table->capacity, sizeof(int), 1, fp);
+
+  // initialize database capacity
+  if (!table->capacity) {
+    table->capacity = 4;
+  }
+  
+  // allocate rows since they are now dynamic
+  table->rows = malloc(sizeof(Row) * table->capacity); 
+
+
+  // initialize database capacity
+  if (!table->capacity) {
+    table->capacity = 4;
+  }
   fread(&table->usedRows, sizeof(int), 1, fp);
   fread(table->rows, sizeof(Row), table->usedRows, fp);
+
+  printf("init capacity: %d, used: %d\n", table->capacity, table->usedRows);
   rewind(fp);
   
   fclose(fp);
@@ -36,6 +54,7 @@ void db_close(Table* table, const char* filename) {
   }
   rewind(fp);
 
+  fwrite(&table->capacity, sizeof(int), 1, fp);
   fwrite(&table->usedRows, sizeof(int), 1, fp);
   fwrite(table->rows, sizeof(Row), table->usedRows, fp);
   fclose(fp);
@@ -56,9 +75,15 @@ void selectAllRecords(Table* table) {
 }
 
 void insertRecord(Table* table, Command* command) {
-  if (table->usedRows == MAX_ROWS) {
-    printf("Database is full!\n");
-    return;
+  if (table->usedRows >= table->capacity) {
+    printf("Database was full!\n");
+    table->capacity *= 2;
+    table->rows = realloc(table->rows, table->capacity * sizeof(Row));
+    printf("realloc capacity: %d, used: %d\n", table->capacity, table->usedRows);
+    if (table->rows == NULL) {
+      printf("Failure to reallocate rows\n");
+      exit(EXIT_FAILURE);
+    }
   }
   Row* newRow = (Row*) malloc(sizeof(Row));
   memset(newRow, 0, sizeof(Row));
