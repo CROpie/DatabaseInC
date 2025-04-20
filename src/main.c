@@ -11,7 +11,7 @@ void printHome() {
 }
 
 int main() {
-  Table* table = db_open();
+  Table* table = db_open("data.db");
   while (1) {
     printHome();
     char* input = getInput();
@@ -49,13 +49,12 @@ int main() {
         break;
       case EXIT:
         printf("goodbyte\n");
-        db_close(table);
+        db_close(table, "data.db");
         return 0;
       case UNDEFINED:
       default:
         printf("unrecognized command\n");
       }
   }
-  db_close(table);
   return 0;
 }

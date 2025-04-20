@@ -32,8 +32,8 @@ typedef struct {
   Row rows[MAX_ROWS];
 } Table;
 
-Table* db_open();
-void db_close(Table* table);
+Table* db_open(const char* filename);
+void db_close(Table* table, const char* filename);
 void selectRecord(Table* table, int recordIndex);
 void selectAllRecords(Table* table);
 void insertRecord(Table* table, Command* command);

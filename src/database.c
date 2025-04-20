@@ -5,13 +5,40 @@
 
 #include "database.h"
 
-Table* db_open() {
+Table* db_open(const char* filename) {
+  // int fd = open(filename, O_RDWR | O_CREAT, S_IWUSR | S_IRUSR);
+
+  FILE* fp = fopen(filename, "rb");
+  if (!fp) {
+    fp = fopen(filename, "wb+");
+    if (!fp) {
+      printf("Unable to open file.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+
   Table* table = (Table*) malloc(sizeof(Table));
-  table->usedRows = 0;
+  memset(table, 0, sizeof(Table));
+  fread(&table->usedRows, sizeof(int), 1, fp);
+  fread(table->rows, sizeof(Row), table->usedRows, fp);
+  rewind(fp);
+  
+  fclose(fp);
+  
   return table;
 }
 
-void db_close(Table* table) {
+void db_close(Table* table, const char* filename) {
+  FILE* fp = fopen(filename, "wb");
+  if (!fp) {
+    printf("Unable to open file.\n");
+    exit(EXIT_FAILURE);
+  }
+  rewind(fp);
+
+  fwrite(&table->usedRows, sizeof(int), 1, fp);
+  fwrite(table->rows, sizeof(Row), table->usedRows, fp);
+  fclose(fp);
   free(table);
 }
 
@@ -34,6 +61,7 @@ void insertRecord(Table* table, Command* command) {
     return;
   }
   Row* newRow = (Row*) malloc(sizeof(Row));
+  memset(newRow, 0, sizeof(Row));
   newRow->isDeleted = false;
   strcpy(newRow->message, command->message);
   table->rows[table->usedRows] = *newRow;
