@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #define MESSAGE_LENGTH 64 
+#define MAX_ROWS 8
 
 typedef enum {
   INSERT,
@@ -28,8 +29,7 @@ typedef struct {
 
 typedef struct {
   int usedRows;
-  int capacity;
-  Row* rows;
+  Row rows[MAX_ROWS];
 } Table;
 
 Table* db_open(const char* filename);
