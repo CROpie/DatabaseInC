@@ -49,7 +49,7 @@ int main() {
         break;
       case EXIT:
         printf("goodbyte\n");
-        db_close(table, "data.db");
+        db_close(table);
         return 0;
       case UNDEFINED:
       default:
