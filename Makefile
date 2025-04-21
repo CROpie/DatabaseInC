@@ -2,7 +2,9 @@
 CC = gcc
 
 # Compiler flags
+# CFLAGS = -Iinclude -fsanitize=address -g
 CFLAGS = -Iinclude -g
+
 
 # Source files
 SRCS = src/main.c src/repl.c src/database.c

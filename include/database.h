@@ -29,8 +29,9 @@ typedef struct {
 
 typedef struct {
   int usedRows;
+  int capacity;
   FILE* fp;
-  Row* rows[MAX_ROWS];
+  Row** rows;
 } Table;
 
 Table* db_open(const char* filename);
