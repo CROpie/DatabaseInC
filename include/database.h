@@ -5,7 +5,6 @@
 
 #define MESSAGE_LENGTH 64 
 #define PAGE_SIZE 512
-#define MAX_PAGES 4
 
 typedef enum {
   INSERT,
@@ -37,7 +36,8 @@ typedef struct {
 
 typedef struct {
   int usedRows;
-  Page pages[MAX_PAGES];
+  int pageCapacity;
+  Page* pages;
 } Table;
 
 

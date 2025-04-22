@@ -19,8 +19,15 @@ Table* db_open(const char* filename) {
 
   Table* table = (Table*) malloc(sizeof(Table));
   fread(&table->usedRows, sizeof(int), 1, fp);
-  fread(table->pages, sizeof(Page), MAX_PAGES, fp);
-    
+  fread(&table->pageCapacity, sizeof(int), 1, fp);
+  if (!table->pageCapacity) {
+    table->pageCapacity = 2;
+  }
+  table->pages = malloc(sizeof(Page) * table->pageCapacity);
+  memset(table->pages, 0, sizeof(Page) * table->pageCapacity);
+
+  fread(table->pages, sizeof(Page), table->pageCapacity, fp);
+
   fclose(fp);
   
   return table;
@@ -34,7 +41,9 @@ void db_close(Table* table, const char* filename) {
   }
 
   fwrite(&table->usedRows, sizeof(int), 1, fp);
-  fwrite(&table->pages, sizeof(Page), MAX_PAGES, fp);
+  fwrite(&table->pageCapacity, sizeof(int), 1, fp);
+  fwrite(table->pages, sizeof(Page), table->pageCapacity, fp);
+  free(table->pages);
 
   fclose(fp);
   free(table);
@@ -56,8 +65,9 @@ void selectAllRecords(Table* table) {
 }
 
 void insertRecord(Table* table, Command* command) {
-  if (table->usedRows >= MAX_ROWS) {
-    printf("Database is full!\n");
+  if (table->usedRows >= ROWS_PER_PAGE * table->pageCapacity) {
+    table->pageCapacity *= 2;
+    table->pages = realloc(table->pages, table->pageCapacity * sizeof(Page));
   } else {
     int currentPage = table->usedRows / ROWS_PER_PAGE;
     int rowOffset = (table->usedRows % ROWS_PER_PAGE);
