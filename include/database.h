@@ -37,7 +37,8 @@ typedef struct {
 typedef struct {
   int usedRows;
   int pageCapacity;
-  Page* pages;
+  FILE* fp;
+  Page** pages;
 } Table;
 
 
