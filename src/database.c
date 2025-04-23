@@ -49,12 +49,18 @@ void db_close(Table* table, const char* filename) {
   free(table);
 }
 
+Row* getRow(Table* table, int index) {
+  int currentPage = index / ROWS_PER_PAGE;
+  int rowOffset = index % ROWS_PER_PAGE;
+  Row* selectedRow = &table->pages[currentPage].rows[rowOffset];
+  return selectedRow;
+}
+
 // using direct access
 void selectRecord(Table* table, int recordIndex) {
-  int currentPage = recordIndex / ROWS_PER_PAGE;  
-  int rowOffset = recordIndex % ROWS_PER_PAGE;
-  if (!table->pages[currentPage].rows[rowOffset].isDeleted) {
-    printf("%d) %s\n", recordIndex, table->pages[currentPage].rows[rowOffset].message);
+  Row* row = getRow(table, recordIndex);
+  if (!row->isDeleted) {
+    printf("%d) %s\n", recordIndex, row->message);
   }
 }
 
@@ -68,20 +74,20 @@ void insertRecord(Table* table, Command* command) {
   if (table->usedRows >= ROWS_PER_PAGE * table->pageCapacity) {
     table->pageCapacity *= 2;
     table->pages = realloc(table->pages, table->pageCapacity * sizeof(Page));
-  } else {
-    int currentPage = table->usedRows / ROWS_PER_PAGE;
-    int rowOffset = (table->usedRows % ROWS_PER_PAGE);
-    // Row selectedRow = table->pages[currentPage].rows[rowOffset]; doesn't work: makes a copy. Need pointer or direct
-    table->pages[currentPage].rows[rowOffset].isDeleted = false;
-    strcpy(table->pages[currentPage].rows[rowOffset].message, command->message);
-    table->usedRows++;
+  }
+
+  Row* row = getRow(table, table->usedRows);
+
+  row->isDeleted = false;
+  strcpy(row->message, command->message);
+  
+  table->usedRows++;
   }
 }
 
 void deleteRecord(Table* table, int recordIndex) {
-  int currentPage = recordIndex / ROWS_PER_PAGE;  
-  int rowOffset = recordIndex % ROWS_PER_PAGE;
-  table->pages[currentPage].rows[rowOffset].isDeleted = true;
+  Row* row = getRow(table, recordIndex);
+  row->isDeleted = true;
 }
 
 void deleteAllRecords(Table* table) {
