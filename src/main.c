@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "database.h"
 #include "repl.h"
+
 
 // changed this to stderr so it doesn't appear in unit test assertions
 void printHome() {
@@ -11,6 +13,7 @@ void printHome() {
 }
 
 int main() {
+  clock_t start = clock();
   Table* table = db_open("data.db");
   while (1) {
     printHome();
@@ -50,6 +53,9 @@ int main() {
       case EXIT:
         printf("goodbyte\n");
         db_close(table);
+        clock_t end = clock();
+        double timeSpent = (double) (end - start) / CLOCKS_PER_SEC;
+        printf("Time: %.6f seconds\n", timeSpent);
         return 0;
       case UNDEFINED:
       default:

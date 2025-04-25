@@ -36,7 +36,7 @@ Table* db_open(const char* filename) {
   return table;
 }
 
-void db_close(Table* table, const char* filename) {
+void db_close(Table* table) {
 
   rewind(table->fp);
 
@@ -79,6 +79,7 @@ Row* getRow(Table* table, int index) {
 // using direct access
 void selectRecord(Table* table, int recordIndex) {
   if (!table->pages[recordIndex]) {
+    printf("Opening page %d\n", pageNum);
     loadPage(table, recordIndex);
   }
 
@@ -98,11 +99,13 @@ void insertRecord(Table* table, Command* command) {
   if (table->usedRows >= ROWS_PER_PAGE * table->pageCapacity) {
     table->pageCapacity *= 2;
     table->pages = realloc(table->pages, table->pageCapacity * sizeof(Page*));
+    printf("Realloc to capacity %d\n", table->pageCapacity);
   }
 
   int pageNum = table->usedRows / ROWS_PER_PAGE;
 
   if (!table->pages[pageNum]) {
+    printf("Opening page %d\n", pageNum);
     loadPage(table, pageNum);
   }
 
@@ -120,11 +123,11 @@ void insertRecord(Table* table, Command* command) {
   table->rows[table->usedRows]->isDeleted = false;
   strcpy(table->rows[table->usedRows]->message, command->message);
   */
-  printf("Returning..\n");
 }
 
 void deleteRecord(Table* table, int recordIndex) {
   if (!table->pages[recordIndex]) {
+    printf("Opening page %d\n", pageNum);
     loadPage(table, recordIndex);
   }
 
