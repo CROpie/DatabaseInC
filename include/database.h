@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #define MESSAGE_LENGTH 64 
-#define MAX_ROWS 8
+#define PAGE_SIZE 512
 
 typedef enum {
   INSERT,
@@ -27,12 +27,20 @@ typedef struct {
   bool isDeleted; 
 } Row;
 
+#define ROWS_PER_PAGE (PAGE_SIZE / sizeof(Row))
+#define MAX_ROWS (MAX_PAGES * ROWS_PER_PAGE)
+
+typedef struct {
+  Row rows[ROWS_PER_PAGE];
+} Page;
+
 typedef struct {
   int usedRows;
-  int capacity;
+  int pageCapacity;
   FILE* fp;
-  Row** rows;
+  Page** pages;
 } Table;
+
 
 Table* db_open(const char* filename);
 void db_close(Table* table);

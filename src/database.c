@@ -20,72 +20,71 @@ Table* db_open(const char* filename) {
   Table* table = (Table*) malloc(sizeof(Table));
   // especially for ensuring row[MAX_ROWS] are all null when accessed for the 1st time
   memset(table, 0, sizeof(Table));
-  
-  table->fp = fp;
-  
-  fread(&table->usedRows, sizeof(int), 1, fp);
-  fread(&table->capacity, sizeof(int), 1, fp);
 
-  if (!table->capacity) {
-    table->capacity = 4;
+  fread(&table->usedRows, sizeof(int), 1, fp);
+  fread(&table->pageCapacity, sizeof(int), 1, fp);
+
+  if (!table->pageCapacity) {
+    table->pageCapacity = 2;
   }
 
-  // malloc the pointer array
-  table->rows = malloc(sizeof(Row*) * table->capacity);
-  memset(table->rows, 0, sizeof(Row*) * table->capacity);
-  
+  table->pages = malloc(sizeof(Page*) * table->pageCapacity);
+  memset(table->pages, 0, sizeof(Page*) * table->pageCapacity);
+
+  table->fp = fp;
+
   return table;
 }
 
-void db_close(Table* table) {
+void db_close(Table* table, const char* filename) {
 
   rewind(table->fp);
+
   fwrite(&table->usedRows, sizeof(int), 1, table->fp);
-  fwrite(&table->capacity, sizeof(int), 1, table->fp);
+  fwrite(&table->pageCapacity, sizeof(int), 1, table->fp);
 
-  for (int i = 0; i < table->usedRows; i++) {
-
-    // ignore if NULL because no change
-    if (!table->rows[i]) {
+  for (int i = 0; i < table->pageCapacity; i++) {
+    if (!table->pages[i]) {
       continue;
     }
-    
-    // calculate where in the file to find this particular row
-    long offset = sizeof(int) + sizeof(int) + (i * sizeof(Row));
 
+    long offset = sizeof(int) + sizeof(int) + (i * sizeof(Page));
     fseek(table->fp, offset, SEEK_SET);
-    fwrite(table->rows[i], sizeof(Row), 1, table->fp);
-    free(table->rows[i]);
+
+    fwrite(table->pages[i], sizeof(Page), 1, table->fp);
+    free(table->pages[i]);
   }
 
   fclose(table->fp);
   free(table);
 }
 
-void selectRecord(Table* table, int recordIndex) {
+void loadPage(Table* table, int pageNum) {
+  Page* loadedPage = (Page*) malloc(sizeof(Page));
+  table->pages[pageNum] = loadedPage;
 
-  // check if has been opened in this session
-  if (table->rows[recordIndex]) {
-
-    if (!table->rows[recordIndex]->isDeleted) {
-      printf("%d) %s\n", recordIndex, table->rows[recordIndex]->message);
-    }
-    return;
-  }
-
-  Row* selectedRow = (Row*) malloc(sizeof(Row));
-  memset(selectedRow, 0, sizeof(Row));
-
-  table->rows[recordIndex] = selectedRow;
-
-  // calculate where in the file to find this particular row
-  long offset = sizeof(int) + sizeof(int) + (recordIndex * sizeof(Row));
+  long offset = sizeof(int) + sizeof(int) + (pageNum * sizeof(Page));
 
   fseek(table->fp, offset, SEEK_SET);
-  fread(selectedRow, sizeof(Row), 1, table->fp);
+  fread(loadedPage, sizeof(Page), 1, table->fp);
+}
 
-  if (!selectedRow->isDeleted) {
-      printf("%d) %s\n", recordIndex, selectedRow->message);
+Row* getRow(Table* table, int index) {
+  int currentPage = index / ROWS_PER_PAGE;
+  int rowOffset = index % ROWS_PER_PAGE;
+  Row* selectedRow = &table->pages[currentPage]->rows[rowOffset];
+  return selectedRow;
+}
+
+// using direct access
+void selectRecord(Table* table, int recordIndex) {
+  if (!table->pages[recordIndex]) {
+    loadPage(table, recordIndex);
+  }
+
+  Row* row = getRow(table, recordIndex);
+  if (!row->isDeleted) {
+    printf("%d) %s\n", recordIndex, row->message);
   }
 }
 
@@ -96,24 +95,22 @@ void selectAllRecords(Table* table) {
 }
 
 void insertRecord(Table* table, Command* command) {
-  if (table->usedRows >= table->capacity) {
-    int oldCapacity = table->capacity;
-    table->capacity *= 2;
-
-    table->rows = realloc(table->rows, sizeof(Row*) * table->capacity);
-
-    // memset only the new part of the array
-    memset(&table->rows[oldCapacity], 0, sizeof(Row*) * (table->capacity - oldCapacity));
-    printf("Database is full, increasing capacity to %d...!\n", table->capacity);
+  if (table->usedRows >= ROWS_PER_PAGE * table->pageCapacity) {
+    table->pageCapacity *= 2;
+    table->pages = realloc(table->pages, table->pageCapacity * sizeof(Page*));
   }
-  Row* newRow = (Row*) malloc(sizeof(Row));
-  memset(newRow, 0, sizeof(Row));
-  
-  newRow->isDeleted = false;
-  strcpy(newRow->message, command->message);
-  
-  table->rows[table->usedRows] = newRow;
 
+  int pageNum = table->usedRows / ROWS_PER_PAGE;
+
+  if (!table->pages[pageNum]) {
+    loadPage(table, pageNum);
+  }
+
+  Row* row = getRow(table, table->usedRows);
+
+  row->isDeleted = false;
+  strcpy(row->message, command->message);
+  
   table->usedRows++;
 
   /*
@@ -127,26 +124,12 @@ void insertRecord(Table* table, Command* command) {
 }
 
 void deleteRecord(Table* table, int recordIndex) {
-
-  // check if has been opened in this session
-  if (table->rows[recordIndex]) {
-    table->rows[recordIndex]->isDeleted = true;
-    return;
+  if (!table->pages[recordIndex]) {
+    loadPage(table, recordIndex);
   }
 
-  Row* selectedRow = (Row*) malloc(sizeof(Row));
-  memset(selectedRow, 0, sizeof(Row));
-
-  table->rows[recordIndex] = selectedRow;
-
-  // calculate where in the file to find this particular row
-  long offset = sizeof(int) + sizeof(int) + (recordIndex * sizeof(Row));
-
-  fseek(table->fp, offset, SEEK_SET);
-  fread(selectedRow, sizeof(Row), 1, table->fp);
-
-  selectedRow->isDeleted = true;
-  table->rows[recordIndex] = NULL;
+  Row* row = getRow(table, recordIndex);
+  row->isDeleted = true;
 }
 
 void deleteAllRecords(Table* table) {
