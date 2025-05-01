@@ -31,7 +31,6 @@ int main() {
       case SELECT:
         if (command->selection == -2) {
           printf("ERROR: not a valid command\n");
-          break;
         } else if (command->selection == -1) {
           selectAllRecords(table);
         } else {
@@ -41,13 +40,20 @@ int main() {
       case DELETE:
         if (command->selection == -2) {
           printf("ERROR: not a valid command\n");
-          break;
         } else if (command->selection == -1) {
           printf("Executed.\n");
           deleteAllRecords(table);
         } else {
           printf("Executed.\n");
           deleteRecord(table, command->selection);
+        }
+        break;
+      case FILTER:
+        if (command->selection == -2) {
+          printf("ERROR: not a valid command\n");
+        } else {
+          printf("Executed.\n");
+          filterRecords(table, command);
         }
         break;
       case EXIT:

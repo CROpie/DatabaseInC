@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 #include "database.h"
 
@@ -62,6 +63,7 @@ void db_close(Table* table) {
 void loadPage(Table* table, int pageNum) {
   Page* loadedPage = (Page*) malloc(sizeof(Page));
   table->pages[pageNum] = loadedPage;
+  printf("Opening page %d\n", pageNum);
 
   long offset = sizeof(int) + sizeof(int) + (pageNum * sizeof(Page));
 
@@ -78,9 +80,10 @@ Row* getRow(Table* table, int index) {
 
 // using direct access
 void selectRecord(Table* table, int recordIndex) {
-  if (!table->pages[recordIndex]) {
-    printf("Opening page %d\n", pageNum);
-    loadPage(table, recordIndex);
+  int requestedPage = recordIndex / ROWS_PER_PAGE;
+
+  if (!table->pages[requestedPage]) {
+    loadPage(table, requestedPage);
   }
 
   Row* row = getRow(table, recordIndex);
@@ -105,7 +108,6 @@ void insertRecord(Table* table, Command* command) {
   int pageNum = table->usedRows / ROWS_PER_PAGE;
 
   if (!table->pages[pageNum]) {
-    printf("Opening page %d\n", pageNum);
     loadPage(table, pageNum);
   }
 
@@ -126,9 +128,9 @@ void insertRecord(Table* table, Command* command) {
 }
 
 void deleteRecord(Table* table, int recordIndex) {
-  if (!table->pages[recordIndex]) {
-    printf("Opening page %d\n", pageNum);
-    loadPage(table, recordIndex);
+  int requestedPage = recordIndex / ROWS_PER_PAGE;
+  if (!table->pages[requestedPage]) {
+    loadPage(table, requestedPage);
   }
 
   Row* row = getRow(table, recordIndex);
@@ -139,4 +141,32 @@ void deleteAllRecords(Table* table) {
   for (int i = 0; i < table->usedRows; i++) {
     deleteRecord(table, i);
   }
+}
+
+void filterRecords(Table* table, Command* command) {
+
+  clock_t start = clock();
+
+  // allocate maximum possible matches in a for a row pointer array on the stack
+  Row* matches[table->usedRows];
+  int numMatches = 0;
+
+  // iterate over rows, adding to usedRows
+  for (int i = 0; i < table->usedRows; i++) {
+    int requestedPage = i / ROWS_PER_PAGE;
+  
+    if (!table->pages[requestedPage]) {
+      loadPage(table, requestedPage);
+    }
+    Row* row = getRow(table, i);
+     
+    if (strstr(row->message, command->message)) {
+      printf("found match in %s\n", row->message);
+      matches[numMatches++] = row;
+    }
+  }
+  clock_t end = clock();
+  double timeSpent = (double) (end - start) / CLOCKS_PER_SEC;
+
+  printf("Found %d matches in  %.6f seconds\n", numMatches, timeSpent);
 }

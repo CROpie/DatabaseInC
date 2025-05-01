@@ -10,6 +10,7 @@ typedef enum {
   INSERT,
   SELECT,
   DELETE,
+  FILTER,
   EXIT,
   UNDEFINED,
 } CommandType;
@@ -49,5 +50,6 @@ void selectAllRecords(Table* table);
 void insertRecord(Table* table, Command* command);
 void deleteRecord(Table* table, int recordIndex); 
 void deleteAllRecords(Table* table); 
+void filterRecords(Table* table, Command* command);
 
 #endif

@@ -124,6 +124,12 @@ Command* parseInput(char* input) {
     }
   }
 
+  if (strncmp(input, "filter",  6) == 0) {
+    command->type = FILTER;
+    char* extracted = truncateInput(7, input);
+    command->message = extracted;
+  }
+
   if (strncmp(input, "exit",  4) == 0) {
     command->type = EXIT; 
   }
