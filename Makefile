@@ -7,7 +7,7 @@ CFLAGS = -Iinclude -g
 
 
 # Source files
-SRCS = src/main.c src/repl.c src/database.c
+SRCS = src/main.c src/repl.c src/database.c src/btree.c
 
 # Object files
 OBJS = $(SRCS:.c=.o)

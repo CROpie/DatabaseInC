@@ -130,6 +130,12 @@ Command* parseInput(char* input) {
     command->message = extracted;
   }
 
+  if (strncmp(input, "search",  6) == 0) {
+    command->type = SEARCH;
+    char* extracted = truncateInput(7, input);
+    command->message = extracted;
+  }
+
   if (strncmp(input, "exit",  4) == 0) {
     command->type = EXIT; 
   }

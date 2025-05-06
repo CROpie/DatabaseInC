@@ -11,6 +11,7 @@ typedef enum {
   SELECT,
   DELETE,
   FILTER,
+  SEARCH,
   EXIT,
   UNDEFINED,
 } CommandType;
