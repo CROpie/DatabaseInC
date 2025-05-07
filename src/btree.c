@@ -126,6 +126,7 @@ char* splitInternal(Tree* tree, InternalNode* internal, InternalNode* left, Inte
   memcpy(right->childIds, internal->childIds + intHalf + 1, ((intHalf - 1) + 1) * sizeof(int));
 
   char* promotionKey = internal->keys[intHalf];
+  free(internal);
 
   return promotionKey; 
 }
@@ -176,24 +177,26 @@ char* splitLeaf(Tree* tree, LeafNode* leaf, LeafNode* left, LeafNode* right) {
 
   memcpy(left->entries, leaf->entries, half * sizeof(Entry)); 
   memcpy(right->entries, leaf->entries + half, half * sizeof(Entry));
+
+  free(leaf);
   
   return right->entries[0].key;
 }
 
-void addToLeafAndSort(LeafNode* leaf, Entry* entry) {
+void addToLeafAndSort(LeafNode* leaf, Entry entry) {
   // add to end of array
-  leaf->entries[leaf->numEntries++] = *entry;
+  leaf->entries[leaf->numEntries++] = entry;
   
   // sort array
   qsort(leaf->entries, leaf->numEntries, sizeof(Entry), compare_entries);
 }
 
-LeafNode* createFirstLeaf(Tree* tree, Entry* entry) {
+LeafNode* createFirstLeaf(Tree* tree, Entry entry) {
   LeafNode* newRoot = (LeafNode*) malloc(sizeof(LeafNode));
   memset(newRoot, 0, sizeof(LeafNode));
   newRoot->isLeaf = 1;
   newRoot->id = tree->idCounter++;
-  newRoot->entries[0] = *entry;
+  newRoot->entries[0] = entry;
   newRoot->numEntries = 1;
   return newRoot;
 }
@@ -220,9 +223,9 @@ LeafNode* findLeaf(void* node, char* key) {
   return findLeaf(internalNode->children[childIndex], key);
 }
 
-void* insert(Tree* tree, Entry* entry) {
+void* insert(Tree* tree, Entry entry) {
 
-  LeafNode* leaf = findLeaf(tree->root, entry->key);
+  LeafNode* leaf = findLeaf(tree->root, entry.key);
 
   if (!leaf) {
     return createFirstLeaf(tree, entry);
@@ -334,6 +337,20 @@ void saveByTraverse(FILE* fp, void* node) {
   }
 }
 
+void freeNodes(void* node) {
+  if (node == NULL) return;
+
+  if (((InternalNode*)node)->isLeaf) {
+    free(node);
+  } else {
+
+    for (int i = 0; i <= ((InternalNode*)node)->numKeys; i++) {
+      freeNodes(((InternalNode*)node)->children[i]);
+    }
+  free(node);
+  }
+}
+
 void serializeTree(Tree* tree) {
   rewind(tree->fp);
   fwrite(&tree->idCounter, sizeof(int), 1, tree->fp);
@@ -341,6 +358,12 @@ void serializeTree(Tree* tree) {
   
   saveByTraverse(tree->fp, tree->root);
   fclose(tree->fp);
+}
+
+void closeTree(Tree* tree) {
+  serializeTree(tree);
+  freeNodes(tree->root);
+  free(tree);
 }
 
 LeafNode* loadLeafNode(FILE* fp) {
@@ -373,7 +396,8 @@ Tree* loadTree(const char* filename) {
     fp = fopen(filename, "wb+");
     if (!fp) {
       printf("Unable to open file.\n");
-      exit(EXIT_FAILURE);
+      // exit(EXIT_FAILURE);
+      return NULL;
     }
   }
   Tree* tree = malloc(sizeof(Tree));
@@ -424,17 +448,19 @@ Tree* loadTree(const char* filename) {
   return tree;
 }
 
-Entry* createEntry(int index, char* string) {
-  Entry* entry = malloc(sizeof(Entry));
-  memset(entry, 0, sizeof(Entry));
-  entry->pageNum = index / ROWS_PER_PAGE;
-  entry->rowOffset = index % ROWS_PER_PAGE;
-  strcpy(entry->key, string);
+Entry createEntry(int index, char* string) {
+  Entry entry;
+  memset(&entry, 0, sizeof(Entry));
+//  Entry* entry = malloc(sizeof(Entry));
+//  memset(entry, 0, sizeof(Entry));
+  entry.pageNum = index / ROWS_PER_PAGE;
+  entry.rowOffset = index % ROWS_PER_PAGE;
+  strcpy(entry.key, string);
   return entry;
 }
 
 void insertIntoTree(Tree* tree, int index, char* string) {
-  Entry* entry = createEntry(index, string);
+  Entry entry = createEntry(index, string);
   void* root = insert(tree, entry);
   if (root) {
     tree->rootId = ((InternalNode*)root)->id;

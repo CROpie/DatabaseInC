@@ -41,6 +41,6 @@ typedef struct {
 
 Tree* loadTree(const char* filename);
 void insertIntoTree(Tree* tree, int index, char* string);
-void serializeTree(Tree* tree);
+void closeTree(Tree* tree);
 void searchString(Tree* tree, char* string);
 #endif

@@ -7,6 +7,15 @@
 #include "repl.h"
 #include "btree.h"
 
+void freeCommand(Command* command) {
+  if (!command) return;
+
+  if (command->message) {
+    free(command->message);
+  }
+
+  free(command);
+}
 
 // changed this to stderr so it doesn't appear in unit test assertions
 void printHome() {
@@ -17,14 +26,20 @@ int main() {
   clock_t start = clock();
   Table* table = db_open("data.db");
   Tree* tree = loadTree("index.db");
+  if (!tree) {
+    db_close(table);
+    return 1;
+  }
   while (1) {
     printHome();
     char* input = getInput();
     if (input == NULL) {
       printf("Failed to get input\n");
+      db_close(table);
       return 1;
     }
     Command* command = parseInput(input);
+    free(input);
     switch (command->type) {
       case INSERT:
         printf("Executed.\n");
@@ -69,8 +84,9 @@ int main() {
         break;
       case EXIT:
         printf("goodbyte\n");
+        freeCommand(command);
         db_close(table);
-        serializeTree(tree);
+        closeTree(tree);
         clock_t end = clock();
         double timeSpent = (double) (end - start) / CLOCKS_PER_SEC;
         printf("Time: %.6f seconds\n", timeSpent);
@@ -79,6 +95,8 @@ int main() {
       default:
         printf("unrecognized command\n");
       }
+    freeCommand(command);
   }
-  return 0;
+  db_close(table);
+  return 1;
 }

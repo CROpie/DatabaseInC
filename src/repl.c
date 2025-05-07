@@ -6,10 +6,16 @@
 #include "database.h"
 
 char* getInput() {
-  size_t size = INPUT_LENGTH;
-  char* buffer = malloc(size);
-  fgets(buffer, size, stdin);
+  char* buffer = calloc(INPUT_LENGTH, 1);
+  if (!buffer) return NULL;
 
+  if (!fgets(buffer, INPUT_LENGTH, stdin)) {
+    // Error or EOF 
+    free(buffer);
+    return NULL;
+  } 
+
+  // user input was too long, get rid of it
   if (strchr(buffer, '\n') == NULL) {
     // Discard remaining input in stdin
     int c;
@@ -59,9 +65,19 @@ char* truncated = strdup(&input[7]);
 */
 
 char* truncateInput(int N, char* input) {
+  if (strlen(input) <= N) {
+    return NULL;
+  }
   char* truncated = malloc(strlen(input + N) + 1);
-  strcpy(truncated, input + 7);
-  free(input);
+  if (truncated == NULL) return NULL;
+
+  strcpy(truncated, input + N);
+  return truncated;
+}
+
+char* truncateInput_(int N, char* input) {
+  char* truncated = malloc(strlen(input + N) + 1);
+  strcpy(truncated, input + N);
   return truncated;
 }
 
@@ -91,6 +107,7 @@ char* truncateInputManualVer(int N, char* input) {
 
 Command* parseInput(char* input) {
   Command* command = (Command*) malloc(sizeof(Command));
+  memset(command, 0, sizeof(Command));
   command->type = UNDEFINED;
   if (strncmp(input, "insert",  6) == 0) {
     command->type = INSERT;
@@ -105,6 +122,7 @@ Command* parseInput(char* input) {
     // -1 for all, -2 for error, 0+ for success
     if (!extracted || strcmp(extracted, "*") == 0 || strlen(extracted) == 0) {
       command->selection = -1;
+      free(extracted);
       return command;
     } else {
       command->selection = parseTruncate(extracted);
@@ -118,6 +136,7 @@ Command* parseInput(char* input) {
     // -1 for all, -2 for error, 0+ for success
     if (!extracted || strcmp(extracted, "*") == 0) {
       command->selection = -1;
+      free(extracted);
       return command;
     } else {
       command->selection = parseTruncate(extracted);

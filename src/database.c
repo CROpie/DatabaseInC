@@ -57,11 +57,13 @@ void db_close(Table* table) {
   }
 
   fclose(table->fp);
+  free(table->pages);
   free(table);
 }
 
 void loadPage(Table* table, int pageNum) {
   Page* loadedPage = (Page*) malloc(sizeof(Page));
+  memset(loadedPage, 0, sizeof(Page));
   table->pages[pageNum] = loadedPage;
   printf("Opening page %d\n", pageNum);
 
@@ -100,8 +102,14 @@ void selectAllRecords(Table* table) {
 
 void insertRecord(Table* table, Command* command) {
   if (table->usedRows >= ROWS_PER_PAGE * table->pageCapacity) {
+    int oldCapacity = table->pageCapacity;
     table->pageCapacity *= 2;
     table->pages = realloc(table->pages, table->pageCapacity * sizeof(Page*));
+
+    // doing this to ensure no uninitialized values when checking for pages
+    for (int i = oldCapacity; i < table->pageCapacity; i++) {
+      table->pages[i] = NULL;
+    }
     printf("Realloc to capacity %d\n", table->pageCapacity);
   }
 
